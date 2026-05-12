@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<title>Försörjningskrav</title>
+
+<style>
+
+/* ✅ BAS */
+body {
+    font-family: 'Segoe UI', Arial;
+    background:#f3f7fb;
+    margin:0;
+}
+
+/* ✅ LAYOUT */
+.wrapper {
+    display:flex;
+    gap:25px;
+    max-width:1200px;
+    margin:40px auto;
+    padding:0 20px;
+}
+
+/* ✅ CARDS */
+.container {
+    flex:1;
+    background:white;
+    padding:25px;
+    border-radius:16px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.08);
+    transition:0.2s;
+}
+
+.container:hover {
+    transform:translateY(-2px);
+}
+
+/* ✅ RUBRIKER */
+h2 {
+    margin-top:0;
+    color:#0f4c97;
+}
+
+h3 {
+    margin-top:25px;
+    margin-bottom:10px;
+    color:#2b2b2b;
+}
+
+/* ✅ INFOBOX */
+.infobox {
+    background:#e8f1fb;
+    border-left:5px solid #1e73d8;
+    padding:12px 15px;
+    border-radius:8px;
+    margin-bottom:20px;
+    font-size:14px;
+}
+
+/* ✅ INPUTS */
+input {
+    padding:10px;
+    margin:6px 0;
+    width:100%;
+    border-radius:8px;
+    border:1px solid #d0d7e2;
+    transition:0.2s;
+}
+
+input:focus {
+    outline:none;
+    border-color:#1e73d8;
+    box-shadow:0 0 0 2px rgba(30,115,216,0.15);
+}
+
+/* ✅ RADIO */
+.radio-group {
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+}
+
+.radio-item {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:6px 8px;
+    border-radius:8px;
+}
+
+.radio-item:hover {
+    background:#f0f6ff;
+}
+
+.radio-item input {
+    width:auto;
+}
+
+/* ✅ RESULTAT */
+.result {
+    margin-top:20px;
+    padding:15px;
+    border-radius:10px;
+    font-weight:500;
+    line-height:1.6;
+}
+
+.ok {
+    background:#e9f7ef;
+    border-left:5px solid #2ecc71;
+}
+
+.bad {
+    background:#fdeaea;
+    border-left:5px solid #e74c3c;
+}
+
+.hidden {
+    display:none;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="wrapper">
+
+<!-- ✅ MAIN -->
+<div class="container">
+
+<h2>Försörjningskrav</h2>
+
+<div class="infobox">
+<strong>Normalbelopp 2026</strong><br>
+Ensamstående: 6 243 kr<br>
+Sammanboende: 10 314 kr<br>
+Barn 0–6: 3 336 kr<br>
+Barn 7–10: 4 004 kr<br>
+Barn 11–14: 4 672 kr<br>
+Barn 15+: 5 339 kr
+</div>
+
+<h3>Hushåll</h3>
+
+<div class="radio-group">
+    <div class="radio-item">
+        <input type="radio" name="mode" value="ensam" checked onchange="updateUI()">
+        <label>Ensamstående vuxen</label>
+    </div>
+
+    <div class="radio-item">
+        <input type="radio" name="mode" value="par" onchange="updateUI()">
+        <label>Sammanlevande vuxen</label>
+    </div>
+</div>
+
+<div id="adultWrapper" class="hidden">
+Antal vuxna
+<input id="numAdults" value="2">
+</div>
+
+Antal barn
+<input id="numChildren" value="0">
+
+<div id="childrenContainer"></div>
+
+<h3>Kostnader</h3>
+Boende <input id="housing">
+Drift <input id="utilities">
+
+<h3>Inkomst efter skatt</h3>
+<input id="salary">
+
+<div id="result" class="result hidden"></div>
+
+</div>
+
+<!-- ✅ PUT -->
+<div class="container">
+
+<h2>PUT beräkning partner</h2>
+
+Boendekostnad (total)
+<input id="put_housing">
+
+Drift (total)
+<input id="put_utilities">
+
+<h3>Inkomst efter skatt</h3>
+<input id="put_salary">
+
+<div id="put_result" class="result hidden"></div>
+
+</div>
+
+</div>
+
+<script>
+
+function updateUI(){
+  let mode = document.querySelector('input[name="mode"]:checked').value;
+  let wrapper = document.getElementById("adultWrapper");
+
+  if(mode === "ensam"){
+    wrapper.classList.add("hidden");
+    numAdults.value = 1;
+  } else {
+    wrapper.classList.remove("hidden");
+    if(!numAdults.value || numAdults.value < 2){
+        numAdults.value = 2;
+    }
+  }
+
+  renderChildren();
+  calcMain();
+}
+
+function renderChildren(){
+  let c = document.getElementById("childrenContainer");
+  c.innerHTML="";
+  let count = Number(numChildren.value || 0);
+
+  for(let i=1;i<=count;i++){
+    c.innerHTML+=`Barn ${i} <input type="date" id="barn${i}">`;
+  }
+}
+
+function childCost(age){
+  if(age<=6) return 3336;
+  if(age<=10) return 4004;
+  if(age<=14) return 4672;
+  return 5339;
+}
+
+function calcMain(){
+
+  let salaryVal = Number(salary.value || 0);
+  let box = document.getElementById("result");
+
+  if(!salaryVal){
+    box.classList.add("hidden");
+    return;
+  }
+
+  let mode = document.querySelector('input[name="mode"]:checked').value;
+
+  let adultCost = (mode==="ensam") ? 6243 : 10314;
+
+  let childrenTotal=0;
+  let today=new Date();
+
+  for(let i=1;i<=Number(numChildren.value||0);i++){
+    let val=document.getElementById("barn"+i)?.value;
+    if(val){
+      let age=Math.floor((today-new Date(val))/(1000*60*60*24*365));
+      childrenTotal+=childCost(age);
+    }
+  }
+
+  let total = adultCost + childrenTotal + Number(housing.value||0) + Number(utilities.value||0);
+  let diff = salaryVal - total;
+
+  box.innerHTML = `
+  <strong>Beräkningsresultat</strong><br><br>
+  Vuxna: ${adultCost} kr<br>
+  Barn: ${childrenTotal} kr<br>
+  Boende: ${housing.value || 0} kr<br>
+  Drift: ${utilities.value || 0} kr<br><br>
+  Totalt krav: ${total} kr<br>
+  Differens: ${diff} kr<br><br>
+  ${diff>=0 ? "✅ Uppfyllt krav" : "❌ Uppfyller ej krav"}
+  `;
+
+  box.className = "result " + (diff>=0 ? "ok":"bad");
+  box.classList.remove("hidden");
+}
+
+function calcPUT(){
+
+  let salaryVal = Number(put_salary.value || 0);
+  let box = document.getElementById("put_result");
+
+  if(!salaryVal){
+    box.classList.add("hidden");
+    return;
+  }
+
+  let housing = Number(put_housing.value||0)/2;
+  let utilities = Number(put_utilities.value||0)/2;
+
+  let total = 6243 + housing + utilities;
+  let diff = salaryVal - total;
+
+  box.innerHTML = `
+  <strong>PUT beräkning partner</strong><br><br>
+  Halv boende: ${housing} kr<br>
+  Halv drift: ${utilities} kr<br>
+  Vuxenbelopp: 6 243 kr<br><br>
+  Totalt krav: ${total} kr<br>
+  Differens: ${diff} kr<br><br>
+  ${diff>=0 ? "✅ Uppfyllt krav" : "❌ Uppfyller ej krav"}
+  `;
+
+  box.className = "result " + (diff>=0 ? "ok":"bad");
+  box.classList.remove("hidden");
+}
+
+document.addEventListener("input", (e) => {
+  if(e.target.id === "numChildren"){
+    renderChildren();
+  }
+  calcMain();
+  calcPUT();
+});
+
+updateUI();
+
+</script>
+
+</body>
+</html>
+``
