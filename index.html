@@ -156,6 +156,13 @@ Barn 15+: 5 339 kr
     </div>
 </div>
 
+<div class="radio-group" style="margin-top:10px;">
+    <div class="radio-item">
+        <input type="checkbox" id="putCheckbox" onchange="calcMain()">
+        <label for="putCheckbox">Huvudsökande har redan PUT, eller permanent uppehållstillstånd söks för alla sökande (normalbelopp × 1,3)</label>
+    </div>
+</div>
+
 <div id="adultWrapper" class="hidden">
 Antal vuxna
 <input id="numAdults" value="2">
@@ -246,7 +253,10 @@ function calcMain(){
 
   let mode = document.querySelector('input[name="mode"]:checked').value;
 
-  let adultCost = (mode==="ensam") ? 6243 : 10314;
+  // ✅ Höjt försörjningskrav: × 1,3 om huvudsökande har PUT eller PUT söks för alla
+  let multiplier = document.getElementById("putCheckbox").checked ? 1.3 : 1;
+
+  let adultCost = Math.round(((mode==="ensam") ? 6243 : 10314) * multiplier);
 
   let childrenTotal=0;
   let today=new Date();
@@ -255,7 +265,7 @@ function calcMain(){
     let val=document.getElementById("barn"+i)?.value;
     if(val){
       let age=Math.floor((today-new Date(val))/(1000*60*60*24*365));
-      childrenTotal+=childCost(age);
+      childrenTotal+=Math.round(childCost(age) * multiplier);
     }
   }
 
@@ -264,6 +274,7 @@ function calcMain(){
 
   box.innerHTML = `
   <strong>Beräkningsresultat</strong><br><br>
+  ${multiplier > 1 ? "<em>Höjt försörjningskrav tillämpat (normalbelopp × 1,3)</em><br><br>" : ""}
   Vuxna: ${adultCost} kr<br>
   Barn: ${childrenTotal} kr<br>
   Boende: ${housing.value || 0} kr<br>
@@ -321,4 +332,3 @@ updateUI();
 
 </body>
 </html>
-``
