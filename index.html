@@ -59,7 +59,7 @@ h3 {
 }
 
 /* ✅ INPUTS */
-input {
+input, select {
     padding:10px;
     margin:6px 0;
     width:100%;
@@ -202,9 +202,55 @@ Drift (total)
 
 </div>
 
+<!-- BOSTADSCHECK -->
+<div class="container">
+<h2>Bostadscheck</h2>
+<div class="infobox">Bostaden ska vara av tillräcklig storlek och standard. Högst två personer per sovrum (vardagsrum och kök räknas inte). Två vuxna utan barn: minst 1 rum och kök/kokvrå. Hushållet hämtas från försörjningskalkylen.</div>
+Boendeform
+<select id="bo_typ">
+<option value="forsta">Hyresrätt i förstahand</option>
+<option value="br">Bostadsrätt / äganderätt</option>
+<option value="andra">Andrahandskontrakt</option>
+<option value="inneboende">Inneboende / hos släkt</option>
+</select>
+Antal sovrum (exkl. vardagsrum)
+<input id="bo_sovrum" type="number" min="0">
+Kontraktets längd i månader (0 = tillsvidare)
+<input id="bo_langd" type="number" min="0" value="0">
+<div class="radio-item"><input type="checkbox" id="bo_kok" checked><label for="bo_kok">Kök eller kokvrå finns</label></div>
+<div id="bo_result" class="result hidden"></div>
+</div>
+
 </div>
 
 <script>
+function fmt(n){return Math.round(n).toLocaleString("sv-SE")+" kr";}
+
+function calcBostad(){
+  const box=document.getElementById("bo_result");
+  const sov=bo_sovrum.value;
+  if(sov===""){box.classList.add("hidden");return;}
+  const nSov=Number(sov);
+  const adults=Number(numAdults.value||1), kids=Number(numChildren.value||0);
+  const persons=adults+kids;
+  const needed = kids===0 ? (adults<=2?0:Math.ceil(adults/2)) : Math.ceil(persons/2);
+  const errs=[], warns=[];
+  if(nSov<needed) errs.push(`För få sovrum: ${persons} personer kräver minst ${needed} sovrum (har ${nSov}).`);
+  if(!bo_kok.checked) errs.push("Kök eller kokvrå saknas.");
+  if(bo_typ.value==="inneboende") errs.push("Inneboende eller boende hos släkt godtas normalt inte – egen bostad krävs.");
+  if(bo_typ.value==="andra"){
+    warns.push("Andrahandskontrakt: hyresvärdens godkännande av uthyrningen behövs.");
+    if(Number(bo_langd.value)===0 || Number(bo_langd.value)<12) warns.push("Kontraktet bör gälla i minst ca ett år framåt.");
+  }
+  if(bo_typ.value==="forsta" && Number(bo_langd.value)>0 && Number(bo_langd.value)<12) warns.push("Tidsbegränsat kontrakt under ett år kan bedömas som otillräckligt.");
+  const ok=errs.length===0;
+  box.innerHTML=`<strong>Bostadscheck</strong><br><br>Hushåll: ${adults} vuxna, ${kids} barn<br>Krav: minst ${needed} sovrum${needed===0?" (1 rum och kök räcker)":""}<br><br>`+
+    errs.map(e=>"❌ "+e).join("<br>")+(errs.length?"<br>":"")+warns.map(w=>"⚠️ "+w).join("<br>")+(warns.length?"<br>":"")+
+    `<br>${ok?"✅ Bostaden ser ut att uppfylla kraven":"❌ Bostaden uppfyller ej kraven"}`;
+  box.className="result "+(ok?"ok":"bad");
+}
+document.addEventListener("input",()=>{calcBostad();});
+document.addEventListener("change",()=>{calcBostad();});
 
 function updateUI(){
   let mode = document.querySelector('input[name="mode"]:checked').value;
