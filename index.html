@@ -1,735 +1,544 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="sv">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Försörjningskalkylator och annonskontroll</title>
-  <meta name="description" content="Beräkna försörjningskrav och kontrollera annonseringsperiod, företag och arbetsbeskrivning för Platsbanken-annonser.">
-  <style>
-    :root {
-      color-scheme: light;
-      --background: #f6f7f9;
-      --foreground: #202632;
-      --card: #ffffff;
-      --card-foreground: #202632;
-      --panel: #fbfbfc;
-      --panel-foreground: #29303b;
-      --primary: #2f72ce;
-      --primary-foreground: #fbfdff;
-      --secondary: #eef2f6;
-      --secondary-foreground: #243550;
-      --muted-foreground: #687385;
-      --border: #dadfe6;
-      --input: #d3d9e1;
-      --notice: #edf6ff;
-      --notice-foreground: #22518d;
-      --notice-border: #bdd8f6;
-      --positive: #ecf8f0;
-      --positive-foreground: #286548;
-      --positive-border: #b8dfc8;
-      --negative: #fff0ef;
-      --negative-foreground: #8b332d;
-      --negative-border: #efc3bd;
-      --overlay: rgba(17, 23, 35, 0.72);
-      --radius: 8px;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: var(--background);
-      color: var(--foreground);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-    }
-
-    main {
-      min-height: 100vh;
-      padding: 24px 16px;
-    }
-
-    .layout {
-      width: min(1400px, 100%);
-      margin: 0 auto;
-      display: flex;
-      align-items: flex-start;
-      gap: 24px;
-    }
-
-    .card {
-      min-width: 0;
-      flex: 1 1 0;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--card);
-      color: var(--card-foreground);
-      padding: 24px;
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
-    }
-
-    h1, h2, h3, p { margin-top: 0; }
-
-    h1, h2 {
-      margin-bottom: 0;
-      font-size: 20px;
-      line-height: 1.35;
-      font-weight: 650;
-      letter-spacing: 0;
-    }
-
-    h3 {
-      margin-bottom: 8px;
-      font-size: 16px;
-      line-height: 1.4;
-      font-weight: 650;
-      letter-spacing: 0;
-    }
-
-    strong { font-weight: 700; }
-
-    .info {
-      margin: 16px 0;
-      border: 1px solid var(--notice-border);
-      border-radius: var(--radius);
-      background: var(--notice);
-      color: var(--notice-foreground);
-      padding: 16px;
-      font-size: 14px;
-      line-height: 1.6;
-    }
-
-    .stack { display: grid; gap: 20px; }
-    .fields { display: grid; gap: 12px; }
-
-    .group-title {
-      margin: 0 0 12px;
-      font-size: 16px;
-      line-height: 1.4;
-      font-weight: 650;
-    }
-
-    label, .label {
-      display: block;
-      font-size: 14px;
-      line-height: 1.45;
-      font-weight: 500;
-    }
-
-    .field { display: grid; gap: 6px; }
-
-    input[type="text"],
-    input[type="number"],
-    input[type="date"] {
-      width: 100%;
-      min-height: 40px;
-      border: 1px solid var(--input);
-      border-radius: 6px;
-      background: var(--card);
-      color: var(--foreground);
-      padding: 8px 12px;
-      font: inherit;
-      outline: none;
-    }
-
-    input:focus-visible {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(47, 114, 206, 0.18);
-    }
-
-    .radio-row,
-    .check-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 8px;
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
-    .check-row { align-items: flex-start; }
-    .check-row input { margin-top: 3px; }
-    input[type="checkbox"], input[type="radio"] { accent-color: var(--primary); }
-
-    button, .button-link {
-      display: inline-flex;
-      min-height: 36px;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      border: 1px solid transparent;
-      border-radius: 6px;
-      padding: 8px 12px;
-      font: inherit;
-      font-size: 14px;
-      font-weight: 600;
-      line-height: 1.2;
-      text-decoration: none;
-      cursor: pointer;
-      transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
-    }
-
-    button:disabled { cursor: not-allowed; opacity: 0.65; }
-
-    .primary-button {
-      background: var(--primary);
-      color: var(--primary-foreground);
-    }
-
-    .primary-button:hover:not(:disabled) { filter: brightness(0.96); }
-
-    .secondary-button {
-      background: var(--secondary);
-      color: var(--secondary-foreground);
-      border-color: var(--border);
-    }
-
-    .ghost-button {
-      background: transparent;
-      color: var(--foreground);
-      border-color: transparent;
-    }
-
-    .ghost-button:hover { background: var(--secondary); }
-
-    .icon { width: 16px; height: 16px; flex: 0 0 16px; }
-
-    .result {
-      margin-top: 16px;
-      border-radius: var(--radius);
-      padding: 16px;
-      line-height: 1.6;
-      border: 1px solid;
-    }
-
-    .result.ok {
-      border-color: var(--positive-border);
-      background: var(--positive);
-      color: var(--positive-foreground);
-    }
-
-    .result.bad {
-      border-color: var(--negative-border);
-      background: var(--negative);
-      color: var(--negative-foreground);
-    }
-
-    .result-title {
-      display: block;
-      margin-bottom: 12px;
-    }
-
-    .result-line {
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      font-size: 14px;
-    }
-
-    .divider {
-      margin: 12px 0;
-      border-top: 1px solid currentColor;
-      opacity: 0.15;
-    }
-
-    .status {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 16px 0 0;
-      font-weight: 700;
-    }
-
-    .ad-details {
-      margin-top: 20px;
-      display: grid;
-      gap: 20px;
-    }
-
-    .panel {
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--panel);
-      color: var(--panel-foreground);
-      padding: 16px;
-    }
-
-    .muted {
-      display: block;
-      margin-top: 4px;
-      color: var(--muted-foreground);
-      font-size: 14px;
-      line-height: 1.45;
-    }
-
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .archive-note {
-      margin: 0;
-      color: var(--muted-foreground);
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
-    .hidden { display: none !important; }
-
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      z-index: 50;
-      display: grid;
-      place-items: center;
-      background: var(--overlay);
-      padding: 24px 16px;
-    }
-
-    .modal {
-      width: min(672px, 100%);
-      max-height: 82vh;
-      overflow-y: auto;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--card);
-      color: var(--card-foreground);
-      padding: 24px;
-      box-shadow: 0 22px 48px rgba(15, 23, 42, 0.32);
-    }
-
-    .modal-head {
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-
-    .modal-title {
-      margin: 0;
-      font-size: 18px;
-      font-weight: 700;
-      line-height: 1.35;
-    }
-
-    .modal-description {
-      margin: 4px 0 0;
-      color: var(--muted-foreground);
-      font-size: 14px;
-      line-height: 1.45;
-    }
-
-    .close-button {
-      width: 34px;
-      min-width: 34px;
-      height: 34px;
-      padding: 0;
-      border-color: var(--border);
-      background: var(--secondary);
-      color: var(--secondary-foreground);
-    }
-
-    .description-text {
-      white-space: pre-wrap;
-      font-size: 14px;
-      line-height: 1.65;
-    }
-
-    @media (max-width: 1120px) {
-      .layout { flex-direction: column; }
-      .card { width: 100%; }
-    }
-
-    @media (max-width: 640px) {
-      main { padding: 16px 12px; }
-      .card { padding: 18px; }
-      .result-line { align-items: flex-start; }
-      .result-line span:last-child { text-align: right; }
-      .modal { padding: 18px; }
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Försörjningskalkylator och annonskontroll</title>
+<meta name="description" content="Beräkna försörjningskrav och kontrollera annonseringsperiod, företag och arbetsbeskrivning för Platsbanken-annonser." />
+<style>
+  :root {
+    --radius: 0.5rem;
+    --background: oklch(0.97 0.004 260);
+    --foreground: oklch(0.21 0.015 255);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.21 0.015 255);
+    --primary: oklch(0.49 0.147 254);
+    --primary-foreground: oklch(0.99 0.003 247);
+    --secondary: oklch(0.94 0.01 250);
+    --secondary-foreground: oklch(0.24 0.033 254);
+    --muted-foreground: oklch(0.48 0.016 255);
+    --border: oklch(0.88 0.008 255);
+    --input: oklch(0.86 0.008 255);
+    --panel: oklch(0.985 0.002 247);
+    --panel-foreground: oklch(0.25 0.012 255);
+    --notice: oklch(0.95 0.029 246);
+    --notice-foreground: oklch(0.29 0.072 253);
+    --notice-border: oklch(0.84 0.05 245);
+    --positive: oklch(0.95 0.042 151);
+    --positive-foreground: oklch(0.34 0.086 152);
+    --positive-border: oklch(0.81 0.082 151);
+    --negative: oklch(0.94 0.035 24);
+    --negative-foreground: oklch(0.42 0.13 27);
+    --negative-border: oklch(0.83 0.087 24);
+    --overlay: oklch(0.12 0.015 255 / 72%);
+    --shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  }
+  * { box-sizing: border-box; border-color: var(--border); }
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    line-height: 1.5;
+  }
+  main { min-height: 100vh; padding: 1.5rem 1rem; }
+  .row { display: flex; flex-wrap: wrap; gap: 1.5rem; max-width: 1400px; margin: 0 auto; align-items: flex-start; }
+  .card {
+    flex: 1 1 380px; min-width: 0;
+    background: var(--card); color: var(--card-foreground);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 1.5rem;
+  }
+  h1, h2 { font-size: 1.25rem; font-weight: 600; margin: 0; }
+  h3 { font-size: 1rem; font-weight: 600; margin: 0 0 0.5rem; }
+  .section-title { margin: 1.25rem 0 0.75rem; }
+  .infobox {
+    margin: 1rem 0; padding: 1rem;
+    background: var(--notice); color: var(--notice-foreground);
+    border: 1px solid var(--notice-border); border-radius: var(--radius);
+    font-size: 0.875rem; line-height: 1.5rem;
+  }
+  .field { margin-bottom: 0.75rem; }
+  .field label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.375rem; }
+  .field input[type="text"], .field input[type="number"], .field input[type="date"] {
+    width: 100%; padding: 0.5rem 0.75rem; font-size: 0.875rem;
+    background: var(--card); color: var(--card-foreground);
+    border: 1px solid var(--input); border-radius: calc(var(--radius) - 2px);
+  }
+  .radio-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+  .check-row { display: flex; align-items: flex-start; gap: 0.5rem; margin-top: 0.75rem; font-size: 0.875rem; }
+  .check-row input { margin-top: 0.25rem; accent-color: var(--primary); }
+  button {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    font-size: 0.875rem; font-weight: 500; padding: 0.5rem 1rem;
+    border: none; border-radius: calc(var(--radius) - 2px); cursor: pointer;
+  }
+  button.primary { background: var(--primary); color: var(--primary-foreground); }
+  button.primary:disabled { opacity: 0.6; cursor: default; }
+  button.secondary { background: var(--secondary); color: var(--secondary-foreground); }
+  button.ghost { background: transparent; color: var(--primary); padding: 0.5rem 0.75rem; }
+  .result { margin-top: 1rem; padding: 1rem; border-radius: var(--radius); line-height: 1.5rem; }
+  .result.ok { background: var(--positive); color: var(--positive-foreground); border: 1px solid var(--positive-border); }
+  .result.bad { background: var(--negative); color: var(--negative-foreground); border: 1px solid var(--negative-border); }
+  .result strong.title { display: block; margin-bottom: 0.75rem; }
+  .line { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.875rem; }
+  .line span:last-child { font-weight: 600; }
+  .divider { margin: 0.75rem 0; border-top: 1px solid currentColor; opacity: 0.15; }
+  .status { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; margin: 1rem 0 0; }
+  .panel { background: var(--panel); color: var(--panel-foreground); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; }
+  .panel small { color: var(--muted-foreground); font-size: 0.875rem; display: block; margin-top: 0.25rem; }
+  .btn-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+  .note { font-size: 0.875rem; color: var(--muted-foreground); }
+  .overlay {
+    position: fixed; inset: 0; background: var(--overlay); z-index: 50;
+    display: flex; align-items: center; justify-content: center; padding: 1rem;
+  }
+  .overlay[hidden] { display: none; }
+  .dialog {
+    background: var(--card); color: var(--card-foreground);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow); max-width: 42rem; width: 100%;
+    max-height: 82vh; overflow-y: auto; padding: 1.5rem; position: relative;
+  }
+  .dialog h3 { font-size: 1.125rem; }
+  .dialog .sub { color: var(--muted-foreground); font-size: 0.875rem; margin: 0.25rem 0 1rem; }
+  .dialog .desc { white-space: pre-wrap; font-size: 0.875rem; line-height: 1.5rem; }
+  .dialog .close {
+    position: absolute; top: 0.75rem; right: 0.75rem;
+    background: transparent; color: var(--muted-foreground); font-size: 1.25rem;
+    padding: 0.25rem 0.5rem; line-height: 1;
+  }
+  @media (max-width: 1023px) { .card { flex: 1 1 100%; } }
+</style>
 </head>
 <body>
-  <main>
-    <div class="layout">
-      <section class="card" aria-labelledby="maintenance-heading">
-        <h1 id="maintenance-heading">Försörjningskrav</h1>
-        <div class="info">
-          <strong>Normalbelopp 2026</strong><br>
-          Ensamstående: 6 243 kr<br>
-          Sammanboende: 10 314 kr<br>
-          Barn 0–6: 3 336 kr<br>
-          Barn 7–10: 4 004 kr<br>
-          Barn 11–14: 4 672 kr<br>
-          Barn 15+: 5 339 kr
-        </div>
+<main>
+  <div class="row">
 
-        <div class="stack">
-          <div>
-            <p class="group-title">Hushåll</p>
-            <label class="radio-row"><input type="radio" name="mode" value="single" checked> Ensamstående vuxen</label>
-            <label class="radio-row"><input type="radio" name="mode" value="couple"> Sammanlevande vuxen</label>
-            <label class="check-row"><input id="higherRequirement" type="checkbox"> <span>Huvudsökande har redan PUT, eller permanent uppehållstillstånd söks för alla sökande (normalbelopp × 1,3)</span></label>
-          </div>
-
-          <div class="field">
-            <label for="childrenCount">Antal barn</label>
-            <input id="childrenCount" type="number" min="0" max="20" value="0">
-          </div>
-
-          <div id="childrenDates" class="fields"></div>
-
-          <div>
-            <p class="group-title">Kostnader</p>
-            <div class="fields">
-              <div class="field">
-                <label for="housing">Boende</label>
-                <input id="housing" type="number" inputmode="numeric">
-              </div>
-              <div class="field">
-                <label for="utilities">Drift</label>
-                <input id="utilities" type="number" inputmode="numeric">
-              </div>
-            </div>
-          </div>
-
-          <div class="field">
-            <label for="salary">Inkomst efter skatt</label>
-            <input id="salary" type="number" inputmode="numeric">
-          </div>
-
-          <div id="maintenanceResult" class="hidden"></div>
-        </div>
-      </section>
-
-      <section class="card" aria-labelledby="partner-heading">
-        <h2 id="partner-heading">PUT beräkning partner</h2>
-        <div class="fields" style="margin-top: 20px;">
-          <div class="field">
-            <label for="partnerHousing">Boendekostnad (total)</label>
-            <input id="partnerHousing" type="number" inputmode="numeric">
-          </div>
-          <div class="field">
-            <label for="partnerUtilities">Drift (total)</label>
-            <input id="partnerUtilities" type="number" inputmode="numeric">
-          </div>
-          <div class="field">
-            <label for="partnerSalary">Inkomst efter skatt</label>
-            <input id="partnerSalary" type="number" inputmode="numeric">
-          </div>
-        </div>
-        <div id="partnerResult" class="hidden"></div>
-      </section>
-
-      <section class="card" aria-labelledby="ad-heading">
-        <h2 id="ad-heading">Annonskontroll</h2>
-        <div class="info">Klistra in annons-ID eller länk från Platsbanken. Annonsen ska ha legat ute minst <strong>10 dagar</strong> (första och sista dagen räknas som hela dagar).</div>
-
-        <form id="adForm" class="fields">
-          <div class="field">
-            <label for="adInput">Annons-ID</label>
-            <input id="adInput" type="text" placeholder="t.ex. 31159412" autocomplete="off">
-          </div>
-          <div>
-            <button id="adSubmit" class="primary-button" type="submit">
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
-              <span>Hämta annons</span>
-            </button>
-          </div>
-        </form>
-
-        <div id="adOutput"></div>
-      </section>
-    </div>
-  </main>
-
-  <div id="descriptionModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-    <div class="modal">
-      <div class="modal-head">
-        <div>
-          <h2 id="modalTitle" class="modal-title"></h2>
-          <p id="modalSubtitle" class="modal-description"></p>
-        </div>
-        <button id="closeModal" class="close-button" type="button" aria-label="Stäng">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
-        </button>
+    <!-- Försörjningskrav -->
+    <section class="card" id="maintenance">
+      <h1>Försörjningskrav</h1>
+      <div class="infobox">
+        <strong>Normalbelopp 2026</strong><br />
+        Ensamstående: 6 243 kr<br />
+        Sammanboende: 10 314 kr<br />
+        Barn 0–6: 3 336 kr<br />
+        Barn 7–10: 4 004 kr<br />
+        Barn 11–14: 4 672 kr<br />
+        Barn 15+: 5 339 kr
       </div>
-      <div id="modalText" class="description-text"></div>
-    </div>
+
+      <h2 class="section-title">Hushåll</h2>
+      <div class="radio-row">
+        <input type="radio" name="mode" id="mode-single" value="single" checked />
+        <label for="mode-single">Ensamstående vuxen</label>
+      </div>
+      <div class="radio-row">
+        <input type="radio" name="mode" id="mode-couple" value="couple" />
+        <label for="mode-couple">Sammanlevande vuxen</label>
+      </div>
+      <label class="check-row">
+        <input type="checkbox" id="higher" />
+        <span>Huvudsökande har redan PUT, eller permanent uppehållstillstånd söks för alla sökande (normalbelopp × 1,3)</span>
+      </label>
+
+      <h2 class="section-title">Barn</h2>
+      <div class="field">
+        <label for="children-count">Antal barn</label>
+        <input type="number" id="children-count" min="0" max="20" value="0" />
+      </div>
+      <div id="child-dates"></div>
+
+      <h2 class="section-title">Kostnader</h2>
+      <div class="field">
+        <label for="housing">Boende</label>
+        <input type="number" id="housing" />
+      </div>
+      <div class="field">
+        <label for="utilities">Drift</label>
+        <input type="number" id="utilities" />
+      </div>
+
+      <div class="field">
+        <label for="salary">Inkomst efter skatt</label>
+        <input type="number" id="salary" />
+      </div>
+
+      <div id="maintenance-result"></div>
+    </section>
+
+    <!-- PUT beräkning partner -->
+    <section class="card" id="partner">
+      <h2>PUT beräkning partner</h2>
+      <div style="margin-top: 1.25rem;">
+        <div class="field">
+          <label for="p-housing">Boendekostnad (total)</label>
+          <input type="number" id="p-housing" />
+        </div>
+        <div class="field">
+          <label for="p-utilities">Drift (total)</label>
+          <input type="number" id="p-utilities" />
+        </div>
+        <div class="field">
+          <label for="p-salary">Inkomst efter skatt</label>
+          <input type="number" id="p-salary" />
+        </div>
+      </div>
+      <div id="partner-result"></div>
+    </section>
+
+    <!-- Annonskontroll -->
+    <section class="card" id="adchecker">
+      <h2>Annonskontroll</h2>
+      <div class="infobox">
+        Klistra in annons-ID eller länk från Platsbanken. Annonsen ska ha legat ute minst <strong>10 dagar</strong> (första och sista dagen räknas som hela dagar).
+      </div>
+
+      <form id="ad-form">
+        <div class="field">
+          <label for="ad-input">Annons-ID</label>
+          <input type="text" id="ad-input" placeholder="t.ex. 31159412" />
+        </div>
+        <button type="submit" class="primary" id="ad-submit">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <span id="ad-submit-label">Hämta annons</span>
+        </button>
+      </form>
+
+      <div id="ad-output"></div>
+    </section>
+
   </div>
+</main>
 
-  <script>
-    const normalAmounts = {
-      single: 6243,
-      couple: 10314,
-      childSmall: 3336,
-      childJunior: 4004,
-      childTeen: 4672,
-      childOlder: 5339,
-    };
+<!-- Arbetsbeskrivning popup -->
+<div class="overlay" id="desc-overlay" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="desc-title">
+    <button type="button" class="close" id="desc-close" aria-label="Stäng">&times;</button>
+    <h3 id="desc-title"></h3>
+    <p class="sub" id="desc-sub"></p>
+    <div class="desc" id="desc-text"></div>
+  </div>
+</div>
 
-    const numberFormatter = new Intl.NumberFormat("sv-SE");
-    const formatCurrency = (value) => `${numberFormatter.format(Math.round(value))} kr`;
-    const toNumber = (value) => Number(value || 0);
-    const dateOnly = (value) => value ? String(value).slice(0, 10) : "";
-    const escapeHtml = (value) => String(value)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
+<script>
+"use strict";
 
-    function formatDate(date) {
-      if (!date) return "–";
-      return new Date(`${date}T12:00:00`).toLocaleDateString("sv-SE", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-    }
+/* ============ Hjälpfunktioner ============ */
 
-    function childCost(age) {
-      if (age <= 6) return normalAmounts.childSmall;
-      if (age <= 10) return normalAmounts.childJunior;
-      if (age <= 14) return normalAmounts.childTeen;
-      return normalAmounts.childOlder;
-    }
+const nf = new Intl.NumberFormat("sv-SE");
+const formatCurrency = (value) => nf.format(Math.round(value)) + " kr";
+const toNumber = (value) => Number(value || 0);
+const dateOnly = (value) => (value ? value.slice(0, 10) : "");
+const formatDate = (date) =>
+  new Date(date + "T12:00:00").toLocaleDateString("sv-SE", {
+    year: "numeric", month: "long", day: "numeric",
+  });
 
-    function ageFromBirthDate(value) {
-      const today = new Date();
-      const birthDate = new Date(value);
-      let age = today.getFullYear() - birthDate.getFullYear();
-      const monthDifference = today.getMonth() - birthDate.getMonth();
-      if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) {
-        age -= 1;
-      }
-      return Math.max(0, age);
-    }
+function childCost(age) {
+  if (age <= 6) return 3336;
+  if (age <= 10) return 4004;
+  if (age <= 14) return 4672;
+  return 5339;
+}
 
-    function inclusiveDays(start, end) {
-      const firstDate = Date.UTC(Number(start.slice(0, 4)), Number(start.slice(5, 7)) - 1, Number(start.slice(8, 10)));
-      const lastDate = Date.UTC(Number(end.slice(0, 4)), Number(end.slice(5, 7)) - 1, Number(end.slice(8, 10)));
-      return Math.round((lastDate - firstDate) / 86400000) + 1;
-    }
+function ageFromBirthDate(value) {
+  const today = new Date();
+  const birthDate = new Date(value);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) age -= 1;
+  return Math.max(0, age);
+}
 
-    function extractAdId(value) {
-      const match = String(value).match(/\d{6,}/);
-      return match ? match[0] : "";
-    }
+function inclusiveDays(start, end) {
+  const first = Date.UTC(+start.slice(0, 4), +start.slice(5, 7) - 1, +start.slice(8, 10));
+  const last = Date.UTC(+end.slice(0, 4), +end.slice(5, 7) - 1, +end.slice(8, 10));
+  return Math.round((last - first) / 86400000) + 1;
+}
 
-    function resultLine(label, value, strong = false) {
-      return `<div class="result-line"><span>${escapeHtml(label)}</span><span${strong ? ' style="font-weight: 700;"' : ""}>${escapeHtml(value)}</span></div>`;
-    }
+function extractAdId(value) {
+  return (value.match(/\d{6,}/) || [""])[0];
+}
 
-    function statusText(ok, positive, negative) {
-      const icon = ok
-        ? '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><path d="m9 11 3 3L22 4"></path></svg>'
-        : '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg>';
-      return `<p class="status">${icon}${escapeHtml(ok ? positive : negative)}</p>`;
-    }
+const ICON_OK = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>';
+const ICON_FAIL = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>';
+const ICON_FILE = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>';
+const ICON_LINK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
 
-    function resultBox(ok, title, content) {
-      return `<div class="result ${ok ? "ok" : "bad"}">${title ? `<strong class="result-title">${escapeHtml(title)}</strong>` : ""}${content}</div>`;
-    }
+function line(label, value) {
+  return '<div class="line"><span>' + label + '</span><span>' + value + "</span></div>";
+}
+function status(ok, positive, negative) {
+  return '<p class="status">' + (ok ? ICON_OK : ICON_FAIL) + (ok ? positive : negative) + "</p>";
+}
 
-    function renderChildrenFields() {
-      const countInput = document.getElementById("childrenCount");
-      const container = document.getElementById("childrenDates");
-      const count = Math.max(0, Math.min(20, Number(countInput.value || 0)));
-      countInput.value = String(count);
-      const previousValues = Array.from(container.querySelectorAll("input")).map((input) => input.value);
-      container.innerHTML = "";
-      for (let index = 0; index < count; index += 1) {
-        const wrapper = document.createElement("div");
-        wrapper.className = "field";
-        wrapper.innerHTML = `<label for="child-${index}">Barn ${index + 1}</label><input id="child-${index}" class="child-date" type="date" value="${escapeHtml(previousValues[index] || "")}">`;
-        container.appendChild(wrapper);
-      }
-      container.querySelectorAll("input").forEach((input) => input.addEventListener("input", calculateMaintenance));
-      calculateMaintenance();
-    }
+/* ============ Försörjningskrav ============ */
 
-    function calculateMaintenance() {
-      const mode = document.querySelector('input[name="mode"]:checked').value;
-      const higherRequirement = document.getElementById("higherRequirement").checked;
-      const housing = toNumber(document.getElementById("housing").value);
-      const utilities = toNumber(document.getElementById("utilities").value);
-      const salary = toNumber(document.getElementById("salary").value);
-      const multiplier = higherRequirement ? 1.3 : 1;
-      const adultCost = Math.round(normalAmounts[mode] * multiplier);
-      const childrenTotal = Array.from(document.querySelectorAll(".child-date")).reduce((sum, input) => {
-        if (!input.value) return sum;
-        return sum + Math.round(childCost(ageFromBirthDate(input.value)) * multiplier);
-      }, 0);
-      const total = adultCost + childrenTotal + housing + utilities;
-      const diff = salary - total;
-      const output = document.getElementById("maintenanceResult");
+let childDates = [];
 
-      if (salary <= 0) {
-        output.className = "hidden";
-        output.innerHTML = "";
-        return;
-      }
+function renderMaintenance() {
+  const mode = document.querySelector('input[name="mode"]:checked').value;
+  const higher = document.getElementById("higher").checked;
+  const housing = toNumber(document.getElementById("housing").value);
+  const utilities = toNumber(document.getElementById("utilities").value);
+  const salary = toNumber(document.getElementById("salary").value);
 
-      const content = `${multiplier > 1 ? '<p style="margin: 0 0 12px; font-weight: 600;">Höjt försörjningskrav tillämpat (normalbelopp × 1,3)</p>' : ""}
-        ${resultLine("Vuxna", formatCurrency(adultCost))}
-        ${resultLine("Barn", formatCurrency(childrenTotal))}
-        ${resultLine("Boende", formatCurrency(housing))}
-        ${resultLine("Drift", formatCurrency(utilities))}
-        <div class="divider"></div>
-        ${resultLine("Totalt krav", formatCurrency(total), true)}
-        ${resultLine("Differens", formatCurrency(diff), true)}
-        ${statusText(diff >= 0, "Uppfyllt krav", "Uppfyller ej krav")}`;
-      output.className = "";
-      output.innerHTML = resultBox(diff >= 0, "Beräkningsresultat", content);
-    }
+  const multiplier = higher ? 1.3 : 1;
+  const adultBase = mode === "single" ? 6243 : 10314;
+  const adultCost = Math.round(adultBase * multiplier);
+  const childrenTotal = childDates.reduce((sum, date) => {
+    if (!date) return sum;
+    return sum + Math.round(childCost(ageFromBirthDate(date)) * multiplier);
+  }, 0);
+  const total = adultCost + childrenTotal + housing + utilities;
+  const diff = salary - total;
 
-    function calculatePartner() {
-      const housing = toNumber(document.getElementById("partnerHousing").value);
-      const utilities = toNumber(document.getElementById("partnerUtilities").value);
-      const salary = toNumber(document.getElementById("partnerSalary").value);
-      const halfHousing = housing / 2;
-      const halfUtilities = utilities / 2;
-      const total = normalAmounts.single + halfHousing + halfUtilities;
-      const diff = salary - total;
-      const output = document.getElementById("partnerResult");
+  const childDateInputs = childDates
+    .map(
+      (date, index) =>
+        '<div class="field"><label for="child-' + index + '">Barn ' + (index + 1) + "</label>" +
+        '<input type="date" id="child-' + index + '" data-index="' + index + '" value="' + date + '" /></div>'
+    )
+    .join("");
+  document.getElementById("child-dates").innerHTML = childDateInputs;
 
-      if (salary <= 0) {
-        output.className = "hidden";
-        output.innerHTML = "";
-        return;
-      }
+  const out = document.getElementById("maintenance-result");
+  if (salary > 0) {
+    out.innerHTML =
+      '<div class="result ' + (diff >= 0 ? "ok" : "bad") + '"><strong class="title">Beräkningsresultat</strong>' +
+      (multiplier > 1 ? '<p style="font-weight:500;margin:0 0 0.75rem;">Höjt försörjningskrav tillämpat (normalbelopp × 1,3)</p>' : "") +
+      line("Vuxna", formatCurrency(adultCost)) +
+      line("Barn", formatCurrency(childrenTotal)) +
+      line("Boende", formatCurrency(housing)) +
+      line("Drift", formatCurrency(utilities)) +
+      '<div class="divider"></div>' +
+      line("Totalt krav", formatCurrency(total)) +
+      line("Differens", formatCurrency(diff)) +
+      status(diff >= 0, "Uppfyllt krav", "Uppfyller ej krav") +
+      "</div>";
+  } else {
+    out.innerHTML = "";
+  }
+}
 
-      const content = `${resultLine("Halv boende", formatCurrency(halfHousing))}
-        ${resultLine("Halv drift", formatCurrency(halfUtilities))}
-        ${resultLine("Vuxenbelopp", "6 243 kr")}
-        <div class="divider"></div>
-        ${resultLine("Totalt krav", formatCurrency(total), true)}
-        ${resultLine("Differens", formatCurrency(diff), true)}
-        ${statusText(diff >= 0, "Uppfyllt krav", "Uppfyller ej krav")}`;
-      output.className = "";
-      output.innerHTML = resultBox(diff >= 0, "PUT beräkning partner", content);
-    }
+document.getElementById("children-count").addEventListener("input", (event) => {
+  const count = Math.max(0, Math.min(20, Number(event.target.value || 0)));
+  const previous = childDates;
+  childDates = Array.from({ length: count }, (_, index) => previous[index] || "");
+  renderMaintenance();
+});
+["housing", "utilities", "salary"].forEach((id) =>
+  document.getElementById(id).addEventListener("input", renderMaintenance)
+);
+document.getElementById("higher").addEventListener("change", renderMaintenance);
+document.querySelectorAll('input[name="mode"]').forEach((radio) =>
+  radio.addEventListener("change", renderMaintenance)
+);
+document.getElementById("child-dates").addEventListener("input", (event) => {
+  const index = Number(event.target.getAttribute("data-index"));
+  if (!Number.isNaN(index)) {
+    childDates[index] = event.target.value;
+    renderMaintenance();
+  }
+});
 
-    async function fetchAd(id) {
-      let removed = false;
-      let response = await fetch(`https://jobsearch.api.jobtechdev.se/ad/${id}`);
+/* ============ PUT beräkning partner ============ */
 
-      if (!response.ok) {
-        removed = true;
-        response = await fetch(`https://historical.api.jobtechdev.se/ad/${id}`);
-      }
+function renderPartner() {
+  const housing = toNumber(document.getElementById("p-housing").value);
+  const utilities = toNumber(document.getElementById("p-utilities").value);
+  const salary = toNumber(document.getElementById("p-salary").value);
 
-      if (!response.ok) throw new Error("Annonsen hittades inte.");
-      const data = await response.json();
-      if (!data || !data.headline) throw new Error("Annonsen hittades inte.");
+  const halfHousing = housing / 2;
+  const halfUtilities = utilities / 2;
+  const total = 6243 + halfHousing + halfUtilities;
+  const diff = salary - total;
 
-      const start = dateOnly(data.publication_date);
-      const end = dateOnly(data.last_publication_date || data.application_deadline);
-      const company = (data.employer && (data.employer.name || data.employer.workplace)) || "Okänt företag";
-      const workplace = (data.employer && data.employer.workplace) || company;
+  const out = document.getElementById("partner-result");
+  if (salary > 0) {
+    out.innerHTML =
+      '<div class="result ' + (diff >= 0 ? "ok" : "bad") + '"><strong class="title">PUT beräkning partner</strong>' +
+      line("Halv boende", formatCurrency(halfHousing)) +
+      line("Halv drift", formatCurrency(halfUtilities)) +
+      line("Vuxenbelopp", "6 243 kr") +
+      '<div class="divider"></div>' +
+      line("Totalt krav", formatCurrency(total)) +
+      line("Differens", formatCurrency(diff)) +
+      status(diff >= 0, "Uppfyllt krav", "Uppfyller ej krav") +
+      "</div>";
+  } else {
+    out.innerHTML = "";
+  }
+}
+["p-housing", "p-utilities", "p-salary"].forEach((id) =>
+  document.getElementById(id).addEventListener("input", renderPartner)
+);
 
-      return {
-        title: data.headline,
-        occupation: (data.occupation && data.occupation.label) || "Okänd",
-        company,
-        workplace,
-        description: (data.description && data.description.text && data.description.text.trim()) || "Ingen arbetsbeskrivning finns i annonsdatan.",
-        start,
-        end,
-        days: start && end ? inclusiveDays(start, end) : 0,
-        url: data.webpage_url || `https://arbetsformedlingen.se/platsbanken/annonser/${id}`,
-        removed: removed || Boolean(data.removed),
-      };
-    }
+/* ============ Annonskontroll ============ */
 
-    function renderAd(ad) {
-      const ok = ad.days >= 10;
-      const output = document.getElementById("adOutput");
-      const details = `${resultBox(ok, "Annonseringsperiod", `
-          ${resultLine("Annonseringsdatum", formatDate(ad.start))}
-          ${resultLine("Slutdatum", formatDate(ad.end))}
-          ${resultLine("Antal dagar", String(ad.days), true)}
-          ${statusText(ok, "Uppfyller kravet på 10 dagar", "Uppfyller ej kravet på 10 dagar")}
-        `)}
-        <div>
-          <h3>Yrkesroll</h3>
-          <div class="panel"><strong>${escapeHtml(ad.title)}</strong><span class="muted">Kategori på Arbetsförmedlingen: ${escapeHtml(ad.occupation)}</span></div>
-        </div>
-        <div>
-          <h3>Företag</h3>
-          <div class="panel"><strong>${escapeHtml(ad.company)}</strong>${ad.workplace !== ad.company ? `<span class="muted">Arbetsplats: ${escapeHtml(ad.workplace)}</span>` : ""}</div>
-        </div>
-        <div class="actions">
-          <button id="showDescription" class="secondary-button" type="button">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
-            Visa arbetsbeskrivning
-          </button>
-          ${!ad.removed ? `<a class="button-link ghost-button" href="${escapeHtml(ad.url)}" target="_blank" rel="noreferrer"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>Öppna hos Platsbanken</a>` : ""}
-        </div>
-        ${ad.removed ? '<p class="archive-note">Annonsen är inte längre aktiv. Uppgifterna visas därför här från historiska annonser i stället för via Platsbanken-länken.</p>' : ""}`;
+let currentAd = null;
 
-      output.innerHTML = `<div class="ad-details">${details}</div>`;
-      document.getElementById("showDescription").addEventListener("click", () => openModal(ad));
-    }
+async function fetchAd(id) {
+  let removed = false;
+  let response = await fetch("https://jobsearch.api.jobtechdev.se/ad/" + id);
 
-    function renderAdError(message) {
-      document.getElementById("adOutput").innerHTML = resultBox(false, "", escapeHtml(message));
-    }
+  if (!response.ok) {
+    removed = true;
+    response = await fetch("https://historical.api.jobtechdev.se/ad/" + id);
+  }
 
-    function openModal(ad) {
-      document.getElementById("modalTitle").textContent = ad.title;
-      document.getElementById("modalSubtitle").textContent = `${ad.company} · ${ad.occupation}`;
-      document.getElementById("modalText").textContent = ad.description;
-      document.getElementById("descriptionModal").classList.remove("hidden");
-      document.getElementById("closeModal").focus();
-    }
+  if (!response.ok) throw new Error("Annonsen hittades inte.");
 
-    function closeModal() {
-      document.getElementById("descriptionModal").classList.add("hidden");
-    }
+  const data = await response.json();
+  if (!data || !data.headline) throw new Error("Annonsen hittades inte.");
 
-    document.querySelectorAll('input[name="mode"], #higherRequirement, #housing, #utilities, #salary').forEach((input) => {
-      input.addEventListener("input", calculateMaintenance);
-      input.addEventListener("change", calculateMaintenance);
+  const start = dateOnly(data.publication_date);
+  const end = dateOnly(data.last_publication_date || data.application_deadline);
+  const company = (data.employer && (data.employer.name || data.employer.workplace)) || "Okänt företag";
+  const workplace = (data.employer && data.employer.workplace) || company;
+
+  return {
+    title: data.headline,
+    occupation: (data.occupation && data.occupation.label) || "Okänd",
+    company,
+    workplace,
+    description: (data.description && data.description.text && data.description.text.trim()) || "Ingen arbetsbeskrivning finns i annonsdatan.",
+    start,
+    end,
+    days: start && end ? inclusiveDays(start, end) : 0,
+    url: data.webpage_url || "https://arbetsformedlingen.se/platsbanken/annonser/" + id,
+    removed: removed || Boolean(data.removed),
+  };
+}
+
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+function renderAd(ad, signedDate) {
+  const ok = ad.days >= 10;
+  let html = "";
+
+  html += '<div class="result ' + (ok ? "ok" : "bad") + '"><strong class="title">Annonseringsperiod</strong>';
+  html += line("Annonseringsdatum", ad.start ? formatDate(ad.start) : "–");
+  html += line("Slutdatum", ad.end ? formatDate(ad.end) : "–");
+  html += line("Antal dagar", String(ad.days));
+  html += status(ok, "Uppfyller kravet på 10 dagar", "Uppfyller ej kravet på 10 dagar");
+  html += "</div>";
+
+  html += '<h3 style="margin-top:1.25rem;">Signerat anställningsavtal</h3>';
+  html += '<div class="field"><label for="signed-date">Datum för signerat avtal</label>' +
+    '<input type="date" id="signed-date" value="' + escapeHtml(signedDate) + '" /></div>';
+
+  if (signedDate && ad.start) {
+    const earliest = new Date(ad.start + "T12:00:00");
+    earliest.setDate(earliest.getDate() + 9);
+    const earliestString = earliest.toISOString().slice(0, 10);
+    const signingOk = signedDate >= earliestString;
+    html += '<div class="result ' + (signingOk ? "ok" : "bad") + '"><strong class="title">Kontroll av signeringsdatum</strong>';
+    html += line("Tidigaste tillåtna datum", formatDate(earliestString));
+    html += line("Signerat datum", formatDate(signedDate));
+    html += status(signingOk,
+      "Avtalet signerades tidigast 10 dagar efter annonsens start",
+      "Avtalet signerades innan annonsen legat ute i 10 dagar");
+    html += "</div>";
+  }
+
+  html += '<h3 style="margin-top:1.25rem;">Yrkesroll</h3>';
+  html += '<div class="panel"><strong>' + escapeHtml(ad.title) + "</strong>" +
+    '<small>Kategori på Arbetsförmedlingen: ' + escapeHtml(ad.occupation) + "</small></div>";
+
+  html += '<h3 style="margin-top:1.25rem;">Företag</h3>';
+  html += '<div class="panel"><strong>' + escapeHtml(ad.company) + "</strong>" +
+    (ad.workplace !== ad.company ? "<small>Arbetsplats: " + escapeHtml(ad.workplace) + "</small>" : "") + "</div>";
+
+  html += '<div class="btn-row" style="margin-top:1.25rem;">';
+  html += '<button type="button" class="secondary" id="show-desc">' + ICON_FILE + "Visa arbetsbeskrivning</button>";
+  if (!ad.removed) {
+    html += '<button type="button" class="ghost" id="open-platsbanken">' + ICON_LINK +
+      'Öppna hos Platsbanken</button>';
+  }
+  html += "</div>";
+
+  if (ad.removed) {
+    html += '<p class="note" style="margin-top:1rem;">Annonsen är inte längre aktiv. Uppgifterna visas därför här från historiska annonser i stället för via Platsbanken-länken.</p>';
+  }
+
+  return html;
+}
+
+function wireAdOutput() {
+  const output = document.getElementById("ad-output");
+  const showDesc = document.getElementById("show-desc");
+  const openLink = document.getElementById("open-platsbanken");
+
+  if (showDesc) {
+    showDesc.addEventListener("click", () => {
+      document.getElementById("desc-title").textContent = currentAd.title;
+      document.getElementById("desc-sub").textContent = currentAd.company + " · " + currentAd.occupation;
+      document.getElementById("desc-text").textContent = currentAd.description;
+      document.getElementById("desc-overlay").hidden = false;
     });
-    document.getElementById("childrenCount").addEventListener("input", renderChildrenFields);
-    document.querySelectorAll("#partnerHousing, #partnerUtilities, #partnerSalary").forEach((input) => input.addEventListener("input", calculatePartner));
+  }
+  if (openLink) {
+    openLink.addEventListener("click", () => window.open(currentAd.url, "_blank", "noopener"));
+  }
 
-    document.getElementById("adForm").addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const id = extractAdId(document.getElementById("adInput").value);
-      const button = document.getElementById("adSubmit");
-      const label = button.querySelector("span");
-      document.getElementById("adOutput").innerHTML = "";
-
-      if (!id) {
-        renderAdError("Ange ett giltigt annons-ID eller en länk som innehåller annons-ID.");
-        return;
-      }
-
-      button.disabled = true;
-      label.textContent = "Hämtar…";
-      try {
-        const ad = await fetchAd(id);
-        renderAd(ad);
-      } catch (error) {
-        renderAdError(error instanceof Error ? error.message : "Kunde inte hämta annonsen.");
-      } finally {
-        button.disabled = false;
-        label.textContent = "Hämta annons";
-      }
+  const signedInput = document.getElementById("signed-date");
+  if (signedInput) {
+    signedInput.addEventListener("input", () => {
+      output.innerHTML = renderAd(currentAd, signedInput.value);
+      wireAdOutput();
+      const input = document.getElementById("signed-date");
+      input.focus();
     });
+  }
+}
 
-    document.getElementById("closeModal").addEventListener("click", closeModal);
-    document.getElementById("descriptionModal").addEventListener("click", (event) => {
-      if (event.target.id === "descriptionModal") closeModal();
-    });
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") closeModal();
-    });
-  </script>
+document.getElementById("ad-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const id = extractAdId(document.getElementById("ad-input").value);
+  const output = document.getElementById("ad-output");
+  const submitLabel = document.getElementById("ad-submit-label");
+
+  output.innerHTML = "";
+  currentAd = null;
+
+  if (!id) {
+    output.innerHTML = '<div class="result bad">Ange ett giltigt annons-ID eller en länk som innehåller annons-ID.</div>';
+    return;
+  }
+
+  document.getElementById("ad-submit").disabled = true;
+  submitLabel.textContent = "Hämtar…";
+
+  try {
+    currentAd = await fetchAd(id);
+    output.innerHTML = renderAd(currentAd, "");
+    wireAdOutput();
+  } catch (error) {
+    output.innerHTML = '<div class="result bad">' +
+      escapeHtml(error instanceof Error ? error.message : "Kunde inte hämta annonsen.") + "</div>";
+  } finally {
+    document.getElementById("ad-submit").disabled = false;
+    submitLabel.textContent = "Hämta annons";
+  }
+});
+
+/* ============ Popup-stängning ============ */
+
+document.getElementById("desc-close").addEventListener("click", () => {
+  document.getElementById("desc-overlay").hidden = true;
+});
+document.getElementById("desc-overlay").addEventListener("click", (event) => {
+  if (event.target === event.currentTarget) event.currentTarget.hidden = true;
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") document.getElementById("desc-overlay").hidden = true;
+});
+</script>
 </body>
 </html>
