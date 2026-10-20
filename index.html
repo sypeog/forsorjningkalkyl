@@ -288,20 +288,11 @@ function renderMaintenance() {
   const adultBase = mode === "single" ? 6243 : 10314;
   const adultCost = Math.round(adultBase * multiplier);
   const childrenTotal = childDates.reduce((sum, date) => {
-    if (!date) return sum;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return sum;
     return sum + Math.round(childCost(ageFromBirthDate(date)) * multiplier);
   }, 0);
   const total = adultCost + childrenTotal + housing + utilities;
   const diff = salary - total;
-
-  const childDateInputs = childDates
-    .map(
-      (date, index) =>
-        '<div class="field"><label for="child-' + index + '">Barn ' + (index + 1) + "</label>" +
-        '<input type="date" id="child-' + index + '" data-index="' + index + '" value="' + date + '" /></div>'
-    )
-    .join("");
-  document.getElementById("child-dates").innerHTML = childDateInputs;
 
   const out = document.getElementById("maintenance-result");
   if (salary > 0) {
@@ -322,10 +313,21 @@ function renderMaintenance() {
   }
 }
 
+function renderChildDates() {
+  document.getElementById("child-dates").innerHTML = childDates
+    .map(
+      (date, index) =>
+        '<div class="field"><label for="child-' + index + '">Barn ' + (index + 1) + " (födelsedatum)</label>" +
+        '<input type="text" id="child-' + index + '" inputmode="numeric" placeholder="ÅÅÅÅ-MM-DD" data-index="' + index + '" value="' + escapeHtml(date) + '" /></div>'
+    )
+    .join("");
+}
+
 document.getElementById("children-count").addEventListener("input", (event) => {
   const count = Math.max(0, Math.min(20, Number(event.target.value || 0)));
   const previous = childDates;
   childDates = Array.from({ length: count }, (_, index) => previous[index] || "");
+  renderChildDates();
   renderMaintenance();
 });
 ["housing", "utilities", "salary"].forEach((id) =>
@@ -430,22 +432,9 @@ function renderAd(ad, signedDate) {
   html += "</div>";
 
   html += '<h3 style="margin-top:1.25rem;">Signerat anställningsavtal</h3>';
-  html += '<div class="field"><label for="signed-date">Datum för signerat avtal</label>' +
-    '<input type="date" id="signed-date" value="' + escapeHtml(signedDate) + '" /></div>';
-
-  if (signedDate && ad.start) {
-    const earliest = new Date(ad.start + "T12:00:00");
-    earliest.setDate(earliest.getDate() + 9);
-    const earliestString = earliest.toISOString().slice(0, 10);
-    const signingOk = signedDate >= earliestString;
-    html += '<div class="result ' + (signingOk ? "ok" : "bad") + '"><strong class="title">Kontroll av signeringsdatum</strong>';
-    html += line("Tidigaste tillåtna datum", formatDate(earliestString));
-    html += line("Signerat datum", formatDate(signedDate));
-    html += status(signingOk,
-      "Avtalet signerades tidigast 10 dagar efter annonsens start",
-      "Avtalet signerades innan annonsen legat ute i 10 dagar");
-    html += "</div>";
-  }
+  html += '<div class="field"><label for="signed-date">Datum för signerat avtal (ÅÅÅÅ-MM-DD)</label>' +
+    '<input type="text" id="signed-date" inputmode="numeric" placeholder="ÅÅÅÅ-MM-DD" value="' + escapeHtml(signedDate) + '" /></div>';
+  html += '<div id="signing-result"></div>';
 
   html += '<h3 style="margin-top:1.25rem;">Yrkesroll</h3>';
   html += '<div class="panel"><strong>' + escapeHtml(ad.title) + "</strong>" +
@@ -490,10 +479,27 @@ function wireAdOutput() {
   const signedInput = document.getElementById("signed-date");
   if (signedInput) {
     signedInput.addEventListener("input", () => {
-      output.innerHTML = renderAd(currentAd, signedInput.value);
-      wireAdOutput();
-      const input = document.getElementById("signed-date");
-      input.focus();
+      const result = document.getElementById("signing-result");
+      if (!result || !currentAd || !currentAd.start) return;
+
+      const value = signedInput.value.trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || isNaN(new Date(value + "T12:00:00").getTime())) {
+        result.innerHTML = "";
+        return;
+      }
+
+      const earliest = new Date(currentAd.start + "T12:00:00");
+      earliest.setDate(earliest.getDate() + 9);
+      const earliestString = earliest.toISOString().slice(0, 10);
+      const signingOk = value >= earliestString;
+      result.innerHTML =
+        '<div class="result ' + (signingOk ? "ok" : "bad") + '"><strong class="title">Kontroll av signeringsdatum</strong>' +
+        line("Tidigaste tillåtna datum", formatDate(earliestString)) +
+        line("Signerat datum", formatDate(value)) +
+        status(signingOk,
+          "Avtalet signerades tidigast 10 dagar efter annonsens start",
+          "Avtalet signerades innan annonsen legat ute i 10 dagar") +
+        "</div>";
     });
   }
 }
